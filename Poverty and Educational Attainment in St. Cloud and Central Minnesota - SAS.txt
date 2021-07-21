@@ -1,0 +1,960 @@
+*************
+Poverty and Educational Attainment in St. Cloud and Central Minnesota
+Hamza Junaid, Claude Lee
+SAS Code
+************;
+
+***************************************
+ETL
+**************************************;
+
+*Stearns;
+
+*variables to consider;
+*poverty educ sex race empstat hcovany age nchild;
+
+*****************************************************
+Stearns County (countyicp = 1450)
+*****************************************************;
+
+
+*******
+Poverty
+*******;
+
+*Poverty Level Average;
+proc means data=ECON485.USA_00016(where = (countyicp in (1450) & Poverty > 0)) chartype mean std n vardef=df;
+	var POVERTY;
+	weight perwt;
+	title "Poverty Level Distribution (Estimated Weighted, Stearns County, Aged 24-65)";
+run;
+title;
+
+*Poverty average within Poverty;
+proc means data=ECON485.USA_00016(where = (countyicp in (1450) & 0 < poverty <= 150)) chartype mean std n vardef=df;
+	var POVERTY;
+	weight perwt;
+	title "Poverty Level Distribution within Poverty (Estimated Weighted, Stearns County, Aged 24-65)";
+run;
+title;
+
+
+*Change Poverty Level into Binary;
+data work.recodedRangesPOV;
+	set ECON485.USA_00016;
+
+	select;
+		when (0 < POVERTY <= 150) POVL=1;
+		when (POVERTY = 0) POVL = '';
+		otherwise POVL = 0;
+	end;
+run;
+
+*Weighted Count of Poverty Status;
+proc freq data=work.recodedRangesPOV(where = (countyicp in (1450)));
+	tables POVL / plots=none;
+	weight perwt;
+	title "Poverty Level Proportion (Estimated Weighted, Stearns County, Aged 24-65)";
+run;
+title;
+
+
+
+*******
+EDUC
+*******;
+
+*Combine 00-05 together as 1 for under HS;
+data work.recodedRangesEDUC;
+	set work.recodedRangesPOV;
+
+	select;
+		when (0 <=EDUC <=5) EDUCL=1;
+		otherwise EDUCL=EDUC;
+	end;
+run;
+
+*1  (under HS)
+ 6  (only HS)
+ 8  (2yr college)
+ 10 (4yr college)
+ 11 (5+yr college);
+
+*Proportion;
+proc freq data=work.recodedRangesEDUC(where = (countyicp in (1450)));
+	tables educl / plots=none;
+	weight perwt;
+	title "Education Level Proportion (Estimated Weighted, Stearns County, Aged 24-65)";
+run;
+title;
+
+*Poverty Level;
+proc means data=work.recodedRangesEDUC(where = (countyicp in (1450))) chartype mean std n vardef=df;
+	var POVL;
+	weight perwt;
+	class educl;
+	title "Education Level Difference of Poverty (Estimated Weighted, Stearns County, Aged 24-65)";
+run;
+title;
+
+
+
+*******
+SEX
+*******;
+
+*1 - male
+ 2 - female;
+ 
+proc freq data=work.recodedRangesPOV(where = (countyicp in (1450)));
+	tables SEX / plots=none;
+	weight perwt;
+	title "Sex Proportion (Estimated Weighted, Stearns County, Aged 24-65)";
+run;
+title;
+
+proc means data=work.recodedRangesPOV(where = (countyicp in (1450))) chartype mean std n vardef=df;
+	var POVL;
+	weight perwt;
+	class sex;
+	title "Sex Difference of Poverty (Estimated Weighted, Stearns County, Aged 24-65)";
+run;
+title;
+
+
+
+*******
+RACE
+*******;
+
+*Group non-white;
+data work.recodedRangesRACE;
+	set work.recodedRangesPOV;
+
+	select;
+		when (RACE >= 2) RACEL = 3;
+		otherwise RACEL = RACE;
+	end;
+run;
+
+*All race proportion;
+*1 - White
+ 2 - Black;
+proc freq data=work.recodedRangesPOV(where = (countyicp in (1450)));
+	tables RACE / plots=none;
+	weight perwt;
+	title "Race Proportion (Estimated Weighted, Stearns County, Aged 24-65)";
+run;
+title;
+
+*White/Non-White proportion;
+*1 - White
+ 3 - Non-White;
+proc freq data=work.recodedRangesRACE(where = (countyicp in (1450)));
+	tables RACEL / plots=none;
+	weight perwt;
+	title "White/Non-White Proportion (Estimated Weighted, Stearns County, Aged 24-65)";
+run;
+title;
+
+*All race poverty difference;
+proc means data=work.recodedRangesPOV(where = (countyicp in (1450))) chartype mean std n vardef=df;
+	var POVL;
+	weight perwt;
+	class RACE;
+	title "Racial Difference of Poverty (Estimated Weighted, Stearns County, Aged 24-65)";
+run;
+title;
+
+*White/Non-White poverty difference;
+proc means data=work.recodedRangesRACE(where = (countyicp in (1450))) chartype mean std n vardef=df;
+	var POVL;
+	weight perwt;
+	class RACEL;
+	title "White/Non-White Difference of Poverty (Estimated Weighted, Stearns County, Aged 24-65)";
+run;
+title;
+
+
+
+*******
+EMPSTAT
+*******;
+
+*0 - N/A
+ 1 - Employed
+ 2 - Unemployed
+ 3 - Not in labor force;
+
+proc freq data=work.recodedRangesPOV(where = (countyicp in (1450)));
+	tables EMPSTAT / plots=none;
+	weight perwt;
+	title "Employment Status Proportion (Estimated Weighted, Stearns County, Aged 24-65)";
+run;
+title;
+
+proc means data=work.recodedRangesPOV(where = (countyicp in (1450))) chartype mean std n vardef=df;
+	var POVL;
+	weight perwt;
+	class EMPSTAT;
+	title "Employment Status Difference of Poverty (Estimated Weighted, Stearns County, Aged 24-65)";
+run;
+title;
+
+
+
+*******
+HCOVANY
+*******;
+
+*1 - No health care coverage
+ 2 - Have health care coverage;
+
+proc freq data=work.recodedRangesPOV(where = (countyicp in (1450)));
+	tables HCOVANY / plots=none;
+	weight perwt;
+	title "Health Care Coverage Proportion (Estimated Weighted, Stearns County, Aged 24-65)";
+run;
+title;
+
+proc means data=work.recodedRangesPOV(where = (countyicp in (1450))) chartype mean std n vardef=df;
+	var POVL;
+	weight perwt;
+	class EMPSTAT;
+	title "Health Care Coverage Difference of Poverty (Estimated Weighted, Stearns County, Aged 24-65)";
+run;
+title;
+
+
+
+*******
+AGE
+*******;
+
+proc means data=work.recodedRangesPOV(where = (countyicp in (1450))) chartype mean std n vardef=df;
+	var AGE;
+	weight perwt;
+	title "Age Distribution (Estimated Weighted, Stearns County, Aged 24-65)";
+run;
+title;
+
+
+
+*******
+NCHILD
+*******;
+
+proc means data=work.recodedRangesPOV(where = (countyicp in (1450))) chartype mean std n vardef=df;
+	var NCHILD;
+	weight perwt;
+	title "Number of Children Distribution (Estimated Weighted, Stearns County, Aged 24-65)";
+run;
+title;
+
+
+
+
+
+
+
+*Central Minnesota;
+
+*variables to consider;
+*poverty educ sex race empstat hcovany age nchild;
+
+*****************************************************
+Central Minnesota (puma in (600 900 1000 1800 1900))
+*****************************************************;
+
+
+*******
+Poverty
+*******;
+
+*Poverty Level Average;
+proc means data=ECON485.USA_00016(where = (puma in (600 900 1000 1800 1900) & Poverty > 0)) chartype mean std n vardef=df;
+	var POVERTY;
+	weight perwt;
+	title "Poverty Level Distribution (Estimated Weighted, Central Minnesota, Aged 24-65)";
+run;
+title;
+
+*Poverty average within Poverty;
+proc means data=ECON485.USA_00016(where = (puma in (600 900 1000 1800 1900) & 0 < poverty <= 150)) chartype mean std n vardef=df;
+	var POVERTY;
+	weight perwt;
+	title "Poverty Level Distribution within Poverty (Estimated Weighted, Central Minnesota, Aged 24-65)";
+run;
+title;
+
+
+*Change Poverty Level into Binary;
+data work.recodedRangesPOV;
+	set ECON485.USA_00016;
+
+	select;
+		when (0 < POVERTY <= 150) POVL=1;
+		when (POVERTY = 0) POVL = '';
+		otherwise POVL = 0;
+	end;
+run;
+
+*Weighted Count of Poverty Status;
+proc freq data=work.recodedRangesPOV(where = (puma in (600 900 1000 1800 1900)));
+	tables POVL / plots=none;
+	weight perwt;
+	title "Poverty Level Proportion (Estimated Weighted, Central Minnesota, Aged 24-65)";
+run;
+title;
+
+
+
+*******
+EDUC
+*******;
+
+*Combine 00-05 together as 1 for under HS;
+data work.recodedRangesEDUC;
+	set work.recodedRangesPOV;
+
+	select;
+		when (0 <=EDUC <=5) EDUCL=1;
+		otherwise EDUCL=EDUC;
+	end;
+run;
+
+*1  (under HS)
+ 6  (only HS)
+ 8  (2yr college)
+ 10 (4yr college)
+ 11 (5+yr college);
+
+*Proportion;
+proc freq data=work.recodedRangesEDUC(where = (puma in (600 900 1000 1800 1900)));
+	tables educl / plots=none;
+	weight perwt;
+	title "Education Level Proportion (Estimated Weighted, Central Minnesota, Aged 24-65)";
+run;
+title;
+
+*Poverty Level;
+proc means data=work.recodedRangesEDUC(where = (puma in (600 900 1000 1800 1900))) chartype mean std n vardef=df;
+	var POVL;
+	weight perwt;
+	class educl;
+	title "Education Level Difference of Poverty (Estimated Weighted, Central Minnesota, Aged 24-65)";
+run;
+title;
+
+
+
+*******
+SEX
+*******;
+
+*1 - male
+ 2 - female;
+ 
+proc freq data=work.recodedRangesPOV(where = (puma in (600 900 1000 1800 1900)));
+	tables SEX / plots=none;
+	weight perwt;
+	title "Sex Proportion (Estimated Weighted, Central Minnesota, Aged 24-65)";
+run;
+title;
+
+proc means data=work.recodedRangesPOV(where = (puma in (600 900 1000 1800 1900))) chartype mean std n vardef=df;
+	var POVL;
+	weight perwt;
+	class sex;
+	title "Sex Difference of Poverty (Estimated Weighted, Central Minnesota, Aged 24-65)";
+run;
+title;
+
+
+
+*******
+RACE
+*******;
+
+*Group non-white;
+data work.recodedRangesRACE;
+	set work.recodedRangesPOV;
+
+	select;
+		when (RACE >= 2) RACEL = 3;
+		otherwise RACEL = RACE;
+	end;
+run;
+
+*All race proportion;
+*1 - White
+ 2 - Black;
+proc freq data=work.recodedRangesPOV(where = (puma in (600 900 1000 1800 1900)));
+	tables RACE / plots=none;
+	weight perwt;
+	title "Race Proportion (Estimated Weighted, Central Minnesota, Aged 24-65)";
+run;
+title;
+
+*White/Non-White proportion;
+*1 - White
+ 3 - Non-White;
+proc freq data=work.recodedRangesRACE(where = (puma in (600 900 1000 1800 1900)));
+	tables RACEL / plots=none;
+	weight perwt;
+	title "White/Non-White Proportion (Estimated Weighted, Central Minnesota, Aged 24-65)";
+run;
+title;
+
+*All race poverty difference;
+proc means data=work.recodedRangesPOV(where = (puma in (600 900 1000 1800 1900))) chartype mean std n vardef=df;
+	var POVL;
+	weight perwt;
+	class RACE;
+	title "Racial Difference of Poverty (Estimated Weighted, Central Minnesota, Aged 24-65)";
+run;
+title;
+
+*White/Non-White poverty difference;
+proc means data=work.recodedRangesRACE(where = (puma in (600 900 1000 1800 1900))) chartype mean std n vardef=df;
+	var POVL;
+	weight perwt;
+	class RACEL;
+	title "White/Non-White Difference of Poverty (Estimated Weighted, Central Minnesota, Aged 24-65)";
+run;
+title;
+
+
+
+*******
+EMPSTAT
+*******;
+
+*0 - N/A
+ 1 - Employed
+ 2 - Unemployed
+ 3 - Not in labor force;
+
+proc freq data=work.recodedRangesPOV(where = (puma in (600 900 1000 1800 1900)));
+	tables EMPSTAT / plots=none;
+	weight perwt;
+	title "Employment Status Proportion (Estimated Weighted, Central Minnesota, Aged 24-65)";
+run;
+title;
+
+proc means data=work.recodedRangesPOV(where = (puma in (600 900 1000 1800 1900))) chartype mean std n vardef=df;
+	var POVL;
+	weight perwt;
+	class EMPSTAT;
+	title "Employment Status Difference of Poverty (Estimated Weighted, Central Minnesota, Aged 24-65)";
+run;
+title;
+
+
+
+*******
+HCOVANY
+*******;
+
+*1 - No health care coverage
+ 2 - Have health care coverage;
+
+proc freq data=work.recodedRangesPOV(where = (puma in (600 900 1000 1800 1900)));
+	tables HCOVANY / plots=none;
+	weight perwt;
+	title "Health Care Coverage Proportion (Estimated Weighted, Central Minnesota, Aged 24-65)";
+run;
+title;
+
+proc means data=work.recodedRangesPOV(where = (puma in (600 900 1000 1800 1900))) chartype mean std n vardef=df;
+	var POVL;
+	weight perwt;
+	class EMPSTAT;
+	title "Health Care Coverage Difference of Poverty (Estimated Weighted, Central Minnesota, Aged 24-65)";
+run;
+title;
+
+
+
+*******
+AGE
+*******;
+
+proc means data=work.recodedRangesPOV(where = (puma in (600 900 1000 1800 1900))) chartype mean std n vardef=df;
+	var AGE;
+	weight perwt;
+	title "Age Distribution (Estimated Weighted, Central Minnesota, Aged 24-65)";
+run;
+title;
+
+
+
+*******
+NCHILD
+*******;
+
+proc means data=work.recodedRangesPOV(where = (puma in (600 900 1000 1800 1900))) chartype mean std n vardef=df;
+	var NCHILD;
+	weight perwt;
+	title "Number of Children Distribution (Estimated Weighted, Central Minnesota, Aged 24-65)";
+run;
+title;
+
+
+
+
+
+***************************************
+Basic Tables
+**************************************;
+
+*Proportion Table;
+
+data work.POVRecode2;
+	set ECON485.USA_00016;
+
+	select;
+		when (0 <=EDUC <=5) EDUCL=1;
+		otherwise EDUCL=EDUC;
+	end;
+	
+	select;
+		when (poverty = 0) POV = "";
+		when (0 < poverty <=75) POV=1;
+		when (75 < poverty <= 150) POV=2;
+		otherwise POV=3;
+	end;
+
+run;
+
+
+
+**************
+Stearns County
+**************;
+
+
+*****
+POVERTY
+*****;
+
+proc freq data=work.POVRecode2(where = (countyicp in (1450)));
+	tables POV / plots=none;
+	weight perwt;
+	title "Poverty Level Proportion (Estimated Weighted, Stearns County, Aged 24-65)";
+run;
+title;
+
+
+
+*****
+EDUC
+*****;
+
+proc freq data=work.POVRecode2(where = (countyicp in (1450)));
+	tables  (EDUCL) *(POV) / nofreq nopercent nocol nocum plots=none;
+	weight perwt;
+	title "Education Level Proportion in Poverty (Estimated Weighted, Stearns County, Aged 24-65)";
+run;
+title;
+
+
+
+*****
+SEX
+*****;
+
+proc freq data=work.POVRecode2(where = (countyicp in (1450)));
+	tables  (SEX) *(POV) / nofreq nopercent nocol nocum plots=none;
+	weight perwt;
+	title "Sex Proportion in Poverty (Estimated Weighted, Stearns County, Aged 24-65)";
+run;
+title;
+
+
+
+*****
+RACE
+*****;
+
+*All Race;
+proc freq data=work.POVRecode2(where = (countyicp in (1450)));
+	tables  (RACE) *(POV) / nofreq nopercent nocol nocum plots=none;
+	weight perwt;
+	title "Race Proportion in Poverty (Estimated Weighted, Stearns County, Aged 24-65)";
+run;
+title;
+
+
+*White vs Non-White;
+data work.POVRACE;
+	set work.POVRecode2;
+
+	select;
+		when (RACE >= 2) RACEL = 3;
+		otherwise RACEL = RACE;
+	end;
+run;
+proc freq data=work.POVRACE(where = (countyicp in (1450)));
+	tables  (RACEL) *(POV) / nofreq nopercent nocol nocum plots=none;
+	weight perwt;
+	title "White/Non-White Proportion in Poverty (Estimated Weighted, Stearns County, Aged 24-65)";
+run;
+title;
+
+
+
+*****
+AGE
+*****;
+proc means data=work.POVRecode2(where = (countyicp in (1450))) chartype mean std min max n vardef=df;
+	var AGE;
+	class POV;
+	title "Age Average in Poverty (Estimated Weighted, Stearns County, Aged 24-65)";
+run;
+title;
+
+
+
+*****
+NCHILD
+*****;
+proc means data=work.POVRecode2(where = (countyicp in (1450))) chartype mean std min max n vardef=df;
+	var NCHILD;
+	class POV;
+	title "Number of Children Average in Poverty (Estimated Weighted, Stearns County, Aged 24-65)";
+run;
+title;
+
+
+
+*****
+EMPSTAT
+*****;
+
+proc freq data=work.POVRecode2(where = (countyicp in (1450)));
+	tables  (EMPSTAT) *(POV) / nofreq nopercent nocol nocum plots=none;
+	weight perwt;
+	title "Employment Status Proportion in Poverty (Estimated Weighted, Stearns County, Aged 24-65)";
+run;
+title;
+
+
+
+*****
+HCOVANY
+*****;
+
+proc freq data=work.POVRecode2(where = (countyicp in (1450)));
+	tables  (HCOVANY) *(POV) / nofreq nopercent nocol nocum plots=none;
+	weight perwt;
+	title "Health Care Coverate Status Proportion in Poverty (Estimated Weighted, Stearns County, Aged 24-65)";
+run;
+title;
+
+
+
+**************
+Central Minnesota
+**************;
+
+
+*****
+POVERTY
+*****;
+
+proc freq data=work.POVRecode2(where = (puma in (600 900 1000 1800 1900)));
+	tables POV / plots=none;
+	weight perwt;
+	title "Poverty Level Proportion (Estimated Weighted, Central Minnesota, Aged 24-65)";
+run;
+title;
+
+
+
+*****
+EDUC
+*****;
+
+proc freq data=work.POVRecode2(where = (puma in (600 900 1000 1800 1900)));
+	tables  (EDUCL) *(POV) / nofreq nopercent nocol nocum plots=none;
+	weight perwt;
+	title "Education Level Proportion in Poverty (Estimated Weighted, Central Minnesota, Aged 24-65)";
+run;
+title;
+
+
+
+*****
+SEX
+*****;
+
+proc freq data=work.POVRecode2(where = (puma in (600 900 1000 1800 1900)));
+	tables  (SEX) *(POV) / nofreq nopercent nocol nocum plots=none;
+	weight perwt;
+	title "Sex Proportion in Poverty (Estimated Weighted, Central Minnesota, Aged 24-65)";
+run;
+title;
+
+
+
+*****
+RACE
+*****;
+
+*All Race;
+proc freq data=work.POVRecode2(where = (puma in (600 900 1000 1800 1900)));
+	tables  (RACE) *(POV) / nofreq nopercent nocol nocum plots=none;
+	weight perwt;
+	title "Race Proportion in Poverty (Estimated Weighted, Central Minnesota, Aged 24-65)";
+run;
+title;
+
+
+*White vs Non-White;
+data work.POVRACE;
+	set work.POVRecode2;
+
+	select;
+		when (RACE >= 2) RACEL = 3;
+		otherwise RACEL = RACE;
+	end;
+run;
+proc freq data=work.POVRACE(where = (puma in (600 900 1000 1800 1900)));
+	tables  (RACEL) *(POV) / nofreq nopercent nocol nocum plots=none;
+	weight perwt;
+	title "White/Non-White Proportion in Poverty (Estimated Weighted, Central Minnesota, Aged 24-65)";
+run;
+title;
+
+
+
+*****
+AGE
+*****;
+proc means data=work.POVRecode2(where = (puma in (600 900 1000 1800 1900))) chartype mean std min max n vardef=df;
+	var AGE;
+	class POV;
+	title "Age Average in Poverty (Estimated Weighted, Central Minnesota, Aged 24-65)";
+run;
+title;
+
+
+
+*****
+NCHILD
+*****;
+proc means data=work.POVRecode2(where = (puma in (600 900 1000 1800 1900))) chartype mean std min max n vardef=df;
+	var NCHILD;
+	class POV;
+	title "Number of Children Average in Poverty (Estimated Weighted, Central Minnesota, Aged 24-65)";
+run;
+title;
+
+
+
+*****
+EMPSTAT
+*****;
+
+proc freq data=work.POVRecode2(where = (puma in (600 900 1000 1800 1900)));
+	tables  (EMPSTAT) *(POV) / nofreq nopercent nocol nocum plots=none;
+	weight perwt;
+	title "Employment Status Proportion in Poverty (Estimated Weighted, Central Minnesota, Aged 24-65)";
+run;
+title;
+
+
+
+*****
+HCOVANY
+*****;
+
+proc freq data=work.POVRecode2(where = (puma in (600 900 1000 1800 1900)));
+	tables  (HCOVANY) *(POV) / nofreq nopercent nocol nocum plots=none;
+	weight perwt;
+	title "Health Care Coverate Status Proportion in Poverty (Estimated Weighted, Central Minnesota, Aged 24-65)";
+run;
+title;
+
+
+
+
+
+*Test Statistics;
+
+data work.POVRecode;
+	set ECON485.USA_00016;
+
+	select;
+		when (0 <=EDUC <=5) EDUCL=1;
+		otherwise EDUCL=EDUC;
+	end;
+	
+	select;
+		when (poverty = 0) POV = "";
+		when (0 < poverty <=75) POV=1;
+		when (75 < poverty <= 150) POV=2;
+		otherwise POV=3;
+	end;
+	
+	select;
+		when (RACE >= 2) RACEL = 3;
+		otherwise RACEL = RACE;
+	end;
+run;
+
+
+
+**********************************************************************************************************
+Stearns County
+**********************************************************************************************************;
+
+*************************
+EDUC
+*************************;
+
+proc freq data=work.POVRecode;
+	where countyicp=1450;
+	tables  (EDUCL) *(POV) / chisq nopercent norow nocol nocum 
+		plots=none;
+	weight perwt;
+	title "Poverty and Education for Stearns County";
+run;
+
+
+
+*************************
+SEX
+*************************;
+
+proc freq data=work.POVRecode;
+	where countyicp=1450;
+	tables  (SEX) *(POV) / chisq nopercent norow nocol nocum 
+		plots=none;
+	weight perwt;
+	title "Poverty and Sex for Stearns County";
+run;
+
+
+
+*************************
+RACE
+*************************;
+
+proc freq data=work.POVRecode;
+	where countyicp=1450;
+	tables  (RACEL) *(POV) / chisq nopercent norow nocol nocum 
+		plots=none;
+	title "Poverty and Race for Stearns County";
+run;
+
+
+**********************************************************************************************************
+Central Minnesota
+**********************************************************************************************************;
+
+*************************
+EDUC
+*************************;
+
+proc freq data=work.POVRecode;
+	where puma in (600 900 1000 1800 1900);
+	tables  (EDUCL) *(POV) / chisq nopercent norow nocol nocum 
+		plots=none;
+	weight perwt;
+	title "Poverty and Education for Central Minnesota";
+run;
+
+
+
+*************************
+SEX
+*************************;
+
+proc freq data=work.POVRecode;
+	where puma in (600 900 1000 1800 1900);
+	tables  (SEX) *(POV) / chisq nopercent norow nocol nocum 
+		plots=none;
+	weight perwt;
+	title "Poverty and Sex for Central Minnesota";
+run;
+
+
+
+*************************
+RACE
+*************************;
+
+proc freq data=work.POVRecode;
+	where puma in (600 900 1000 1800 1900);
+	tables  (RACEL) *(POV) / chisq nopercent norow nocol nocum 
+		plots=none;
+	weight perwt;
+	title "Poverty and Race for Central Minnesota";
+run;
+
+
+
+
+
+
+**************************
+Regression
+*************************;
+
+data work.POVEDUC;
+	set ECON485.USA_00016;
+
+	select;
+		when (0 < POVERTY <= 150) POVL=1;
+		when (POVERTY = 0) POVL = '';
+		otherwise POVL = 0;
+	end;
+
+	select;
+		when (0 <=EDUC <=5) EDUCL=1;
+		otherwise EDUCL=EDUC;
+	end;
+	
+	select;
+		when (RACE >= 2) RACEL = 3;
+		otherwise RACEL = RACE;
+	end;
+	
+	select;
+		when (RACE = 2) BLACK = 1;
+		otherwise BLACK = 0;
+	end;
+run;
+
+*1  (under HS)
+ 6  (only HS)
+ 7  (1yr college)
+ 8  (2yr college)
+ 9  (3yr college) - No sample
+ 10 (4yr college)
+ 11 (5+yr college);
+ 
+ 
+
+ 
+proc glmselect data=work.POVEDUC(where = (countyicp in (1450))) outdesign(addinputvars)=Work.reg_design;
+	class EDUCL(ref = "1") SEX(ref = "1") RACEL(ref = "1") BLACK(ref = "0") EMPSTAT(ref = "1") HCOVANY(ref = "2") / param=ref;
+	model POVL=EDUCL SEX RACEL BLACK AGE EMPSTAT HCOVANY NCHILD / showpvalues selection=none;
+	weight PERWT;
+	title "Linear Probability Model for Poverty in St. Cloud Area";
+run;
+title;
+proc delete data=Work.reg_design;
+run;
+
+proc glmselect data=work.POVEDUC(where = (puma in (600 900 1000 1800 1900))) outdesign(addinputvars)=Work.reg_design;
+	class EDUCL(ref = "1") SEX(ref = "1") RACEL(ref = "1") BLACK(ref = "0") EMPSTAT(ref = "1") HCOVANY(ref = "2") / param=ref;
+	model POVL=EDUCL SEX RACEL BLACK AGE EMPSTAT HCOVANY NCHILD / showpvalues selection=none;
+	weight PERWT;
+	title "Linear Probability Model for Poverty in Central Minnesota";
+run;
+title;
+proc delete data=Work.reg_design;
+run;
